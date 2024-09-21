@@ -23,7 +23,7 @@ $ make
 $ xxd -i <tune>.xm > <tune>.h
 ```
 
-Add `__in_flash()` to the variable declaration it will reside in flash.
+Add `__in_flash()` to the variable declaration so it will reside in flash.
 
 ```diff
 - unsigned char crack_xm[]
