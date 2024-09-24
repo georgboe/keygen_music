@@ -4,13 +4,22 @@
 #include "pico/stdlib.h"
 #include "hardware/vreg.h"
 #include "hardware/clocks.h"
-#include "m4p/m4p.h"
 #include "pico_audio_i2s/include/pico/audio_i2s.h"
 #include <math.h>
 
 #include "tunes/crack.h"
 #include "tunes/unreal.h"
 #include "tunes/ghidapop.h"
+
+extern "C" {
+	bool initMusic(int32_t audioFrequency, int32_t audioBufferSize, bool interpolation, bool volumeRamping);
+	bool loadMusicFromData(const uint8_t *data, uint32_t dataLength); // .XM/.MOD/.FT
+	extern void startPlaying(void);
+	extern void stopPlaying(void);
+	extern void mix_UpdateBuffer(int16_t *buffer, int32_t numSamples);
+	extern void stopMusic();
+	extern void freeMusic(void);
+}
 
 static const unsigned int channels = 2;
 static const unsigned int rate = 44100;
@@ -28,25 +37,26 @@ int main()
     stdio_init_all();
 	set_binary_info();
 
+	initMusic(rate, buffer_size, true, true);
 	// load random song
 	int songIndex = get_rand_32() % 3;
 	switch (songIndex)
 	{
 		case 0:
-			m4p_LoadFromData((uint8_t*)unreeeal_superhero_3_xm, unreeeal_superhero_3_xm_len, rate, buffer_size);
+			loadMusicFromData((uint8_t*)unreeeal_superhero_3_xm, unreeeal_superhero_3_xm_len);
 			break;
 		case 1:
-			m4p_LoadFromData((uint8_t*)ghidapop_xm, ghidapop_xm_len, rate, buffer_size);
+			loadMusicFromData((uint8_t*)ghidapop_xm, ghidapop_xm_len);
 			break;
 		case 2:
-			m4p_LoadFromData((uint8_t*)crack_xm, crack_xm_len, rate, buffer_size);
+			loadMusicFromData((uint8_t*)crack_xm, crack_xm_len);
 			break;
 		default:
-			m4p_LoadFromData((uint8_t*)crack_xm, crack_xm_len, rate, buffer_size);
+			loadMusicFromData((uint8_t*)crack_xm, crack_xm_len);
 			break;
 	}
 
-	m4p_PlaySong();
+	startPlaying();
 
 
 	audio_format_t format = {
@@ -84,7 +94,7 @@ int main()
 		audio_buffer_t *ab = get_free_audio_buffer(producer, true);
 
 		int16_t *buffer = (int16_t *) ab->buffer->bytes;
-		m4p_GenerateSamples(buffer, buffer_size / sizeof(int16_t));
+		mix_UpdateBuffer(buffer, buffer_size / sizeof(int16_t));
 		ab->sample_count = buffer_size / sizeof(int16_t);
 		queue_full_audio_buffer(producer, ab);
 
